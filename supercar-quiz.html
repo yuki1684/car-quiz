@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supercar Quiz v10.0</title>
+    <title>Supercar Quiz v11.0</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -49,7 +49,7 @@
             transition: border-color 0.3s;
         }
         .zoom-img {
-            width: 100%; height: 100%; object-fit: cover; /* PNGの縦横比を維持しつつ埋める */
+            width: 100%; height: 100%; object-fit: cover;
             transform: scale(25); transform-origin: center; 
             transition: transform 8s ease-out;
         }
@@ -72,7 +72,22 @@
         }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* ボタン */
+        /* ゲーム画面ヘッダー（新設） */
+        .game-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 5px; margin-bottom: 5px;
+        }
+        .header-right {
+            display: flex; align-items: center; gap: 15px; /* スコアとボタンの間隔 */
+        }
+        .menu-btn {
+            background: #555; color: #fff; border: 1px solid #777;
+            padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+            transition: 0.2s;
+        }
+        .menu-btn:hover { background: #777; }
+
+        /* 選択肢ボタン */
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         .btn {
             background: #333; color: white; border: 2px solid #333; padding: 15px;
@@ -92,7 +107,7 @@
 </head>
 <body>
 
-    <h1>🏎️ Supercar Quiz v10</h1>
+    <h1>🏎️ Supercar Quiz v11</h1>
 
     <div id="start-screen" class="card">
         <h2>GAME SETUP</h2>
@@ -114,11 +129,15 @@
     </div>
 
     <div id="game-screen">
-        <div style="display:flex; justify-content:space-between; padding:0 10px;">
+        <div class="game-header">
             <span id="progress-text">Q 1 / 10</span>
-            <span style="color:#f1c40f; font-weight:bold;">SCORE: <span id="score">0</span></span>
+            <div class="header-right">
+                <span style="color:#f1c40f; font-weight:bold;">SCORE: <span id="score">0</span></span>
+                <button class="menu-btn" onclick="backToMenu()">🏠 メニュー</button>
+            </div>
         </div>
-        <div id="timer-wrapper" style="margin-top:10px; display:none;">
+        
+        <div id="timer-wrapper" style="margin-top:5px; display:none;">
             <div style="background:#333; height:8px; border-radius:4px; overflow:hidden;">
                 <div id="timer-bar" class="timer-bar"></div>
             </div>
@@ -136,42 +155,31 @@
 
     <script>
         // ==========================================
-        // 🎵 オーディオ & 効果音システム (MP3対応版)
+        // 🎵 オーディオ & 効果音システム
         // ==========================================
         let currentAudio = null; // 現在再生中のエンジン音
         
-        // エンジン音(MP3)を再生する関数
         function playEngineSound(fileName) {
-            // 既に再生中なら止める
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio.currentTime = 0;
             }
-
-            // MP3ファイルがない場合はエラー回避
             if (!fileName) return;
 
-            // 新しい音声をセット
             currentAudio = new Audio(fileName);
-            
-            // 再生開始
             currentAudio.play().catch(e => {
-                console.log("音声ファイルが見つからないか、再生できません:", e);
-                // エラー時はアイコンのアニメーションを止めるなどの処理を入れても良い
+                console.log("音声再生エラー:", e);
             });
 
-            // 再生中のアイコン演出
             const icon = document.getElementById('sound-icon');
             if(icon) {
                 icon.classList.add('sound-playing');
-                // 音声が終わったらアニメーション停止
                 currentAudio.onended = () => {
                     icon.classList.remove('sound-playing');
                 };
             }
         }
 
-        // エンジン音を強制停止する関数（回答時など）
         function stopEngineSound() {
             if (currentAudio) {
                 currentAudio.pause();
@@ -181,7 +189,6 @@
             if(icon) icon.classList.remove('sound-playing');
         }
 
-        // 正解・不正解のSE（これは簡易的な電子音のままにしていますが、ここもmp3にできます）
         let audioCtx;
         function playSE(type) {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -239,19 +246,23 @@
             loadQuestion();
         }
 
+        // ▼ メニューに戻る機能
+        function backToMenu() {
+            // 安全のためページをリロードして初期状態に戻します
+            location.reload();
+        }
+
         function loadQuestion() {
             isAnswered = false;
-            stopEngineSound(); // 前の音が鳴っていたら止める
+            stopEngineSound();
 
             const q = currentQuestions[currentIndex];
             document.getElementById('progress-text').innerText = `Q ${currentIndex + 1} / ${currentQuestions.length}`;
             
             let mediaHTML = '';
             if (selectedCategory === 'image') {
-                // 画像クイズ：PNGもJPGも src="" に入れるだけでOK
                 mediaHTML = `<div class="image-container"><img id="zoom-target" src="${q.img}" class="zoom-img"></div>`;
             } else {
-                // 音クイズ：初期はアイコン
                 mediaHTML = `<div id="sound-area" class="sound-container"><div class="sound-icon" id="sound-icon" onclick="playEngineSound('${q.soundFile}')">🔊</div><p style="color:#aaa; font-size:0.9em; margin-top:10px;">クリックで再生 / 再生中...</p></div><div id="video-area" class="video-wrapper"></div>`;
             }
 
@@ -268,7 +279,6 @@
                     const img = document.getElementById('zoom-target');
                     if(img) img.style.transform = "scale(1)";
                 } else {
-                    // 音クイズ：開始時に自動再生（自動再生ブロック対策でクリックが必要な場合もあります）
                     playEngineSound(q.soundFile);
                 }
             }, 800);
@@ -305,7 +315,6 @@
             isAnswered = true;
             clearInterval(timerInterval);
             
-            // 回答したらエンジン音を止める
             stopEngineSound();
 
             const q = currentQuestions[currentIndex];
@@ -371,14 +380,10 @@
         // 💾 クイズデータリスト
         // ==========================================
         
-        // 📷 【画像クイズ】
-        // img: 画像ファイルのパス (PNG, JPGどちらでもOK)
-        // 例: "ferrari.png" や "images/car01.jpg" など
+        // 📷 【画像クイズ】(PNG, JPG対応)
         const imageQuizzes = [
             { a:0, q:"この車は？", img:"https://images.unsplash.com/photo-1592198084033-aade902d1aae?w=600", o:["フェラーリ F8", "マクラーレン 720S", "ランボルギーニ", "ポルシェ 911"] },
             { a:1, q:"巨大なリアウィング...", img:"https://images.unsplash.com/photo-1503376763036-066120622c74?w=600", o:["GT-R Nismo", "ポルシェ 911 GT3", "ホンダ NSX", "BMW M4"] },
-            // ↓ 下記のようにローカルのPNGファイルを指定できます
-            // { a:0, q:"テスト用画像", img:"my_car_image.png", o:["A", "B", "C", "D"] },
             { a:2, q:"鋭いヘッドライト", img:"https://images.unsplash.com/photo-1544605975-33d886f8b542?w=600", o:["カマロ", "マスタング", "ランボルギーニ ウラカン", "コルベット"] },
             { a:0, q:"伝説のハイパーカー", img:"https://images.unsplash.com/photo-1621508654686-8193a7d43232?w=600", o:["ブガッティ シロン", "ケーニグセグ", "パガーニ", "ラ・フェラーリ"] },
             { a:3, q:"リトラクタブルライト", img:"https://images.unsplash.com/photo-1552519507-da8b1227ad4a?w=600", o:["AE86", "RX-7 (FD)", "スープラ", "NSX (初代)"] },
@@ -389,16 +394,13 @@
             { a:1, q:"アメリカンマッスル", img:"https://images.unsplash.com/photo-1583121274602-3e2820c698d9?w=600", o:["カマロ", "フォード GT", "チャレンジャー", "コルベット"] }
         ];
 
-        // 🔊 【音クイズ】
-        // soundFile: MP3ファイルのパスを指定します
-        // 例: "sounds/v12_engine.mp3"
+        // 🔊 【音クイズ】(MP3対応)
         const soundQuizzes = [
             { a:1, q:"この高音V12サウンドは？", soundFile:"sound_aventador.mp3", video:"mk40W31d92A", o:["ダッジ バイパー", "ランボルギーニ アヴェンタドール", "AMG GT", "コルベット"] },
             { a:0, q:"独特な乾いたV8サウンド", soundFile:"sound_ferrari458.mp3", video:"K9O1T0jG1tQ", o:["フェラーリ 458", "マスタング", "アストンマーティン", "ベントレー"] },
             { a:3, q:"ドロドロとした低音...", soundFile:"sound_challenger.mp3", video:"Q6Mdc5fP-jM", o:["ポルシェ 911", "NSX", "GT-R", "ダッジ チャレンジャー"] },
             { a:2, q:"精密機械のような直6音", soundFile:"sound_bmw.mp3", video:"A_1Xo3e6-e4", o:["スープラ", "RX-7", "BMW M4", "シビック TypeR"] },
             { a:0, q:"F1のような超高音 (V10)", soundFile:"sound_lfa.mp3", video:"p6D7jI-O9sg", o:["レクサス LFA", "アウディ R8", "ガヤルド", "ウラカン"] },
-            // 以下はファイルがない場合（ダミー）でもエラーにはならず無音になります
             { a:1, q:"ロータリーサウンド", soundFile:"sound_rx7.mp3", video:"v4aL0R2K6m8", o:["GT-R", "マツダ RX-7", "ランエボ", "インプレッサ"] },
             { a:2, q:"水平対向エンジンの鼓動", soundFile:"sound_boxer.mp3", video:"C629555555", o:["86/BRZ", "フェラーリ", "ポルシェ 911", "WRX STI"] },
             { a:3, q:"W16エンジンの重低音", soundFile:"sound_chiron.mp3", video:"PkkV1vLHUvQ", o:["ロールスロイス", "マイバッハ", "ケーニグセグ", "ブガッティ シロン"] },
