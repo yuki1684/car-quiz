@@ -107,22 +107,22 @@
 </head>
 <body>
 
-    <h1>🏎️ Supercar Quiz v11</h1>
+    <h1> Supercar Quiz </h1>
 
     <div id="start-screen" class="card">
         <h2>GAME SETUP</h2>
         <div class="mode-group">
             <span style="color:#aaa; display:block; margin-bottom:5px;">1. クイズの種類</span>
             <div class="selection-grid">
-                <button class="select-btn" id="btn-cat-image" onclick="selectCategory('image')">📷 画像クイズ</button>
-                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')">🔊 音クイズ + 🎥</button>
+                <button class="select-btn" id="btn-cat-image" onclick="selectCategory('image')"> 画像クイズ</button>
+                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')"> 音クイズ </button>
             </div>
         </div>
         <div class="mode-group">
             <span style="color:#aaa; display:block; margin-bottom:5px;">2. モード選択</span>
             <div class="selection-grid">
-                <button class="select-btn" id="btn-mode-time" onclick="selectMode(true)">🔥 タイムアタック</button>
-                <button class="select-btn" id="btn-mode-relax" onclick="selectMode(false)">☕ リラックス</button>
+                <button class="select-btn" id="btn-mode-time" onclick="selectMode(true)"> タイムアタック</button>
+                <button class="select-btn" id="btn-mode-relax" onclick="selectMode(false)"> リラックス</button>
             </div>
         </div>
         <button id="start-btn" class="big-start-btn" onclick="startGame()" disabled>START GAME</button>
@@ -133,7 +133,7 @@
             <span id="progress-text">Q 1 / 10</span>
             <div class="header-right">
                 <span style="color:#f1c40f; font-weight:bold;">SCORE: <span id="score">0</span></span>
-                <button class="menu-btn" onclick="backToMenu()">🏠 メニュー</button>
+                <button class="menu-btn" onclick="backToMenu()"> メニューに戻る</button>
             </div>
         </div>
         
@@ -147,7 +147,7 @@
     </div>
 
     <div id="final-screen" class="card">
-        <h2>🏁 FINISH! 🏁</h2>
+        <h2> FINISH! </h2>
         <div style="font-size:4em; color:#f1c40f; margin:20px 0;" id="final-score">0</div>
         <p id="rank-comment" style="font-size:1.2em; font-weight:bold;"></p>
         <button class="btn" style="background:#3498db; margin-top:20px;" onclick="location.reload()">タイトルに戻る</button>
@@ -368,11 +368,11 @@
             const maxScore = currentQuestions.length * (isTimerMode ? 200 : 100);
             const rank = document.getElementById('rank-comment');
             if (score >= maxScore * 0.8) {
-                rank.innerText = "🏆 究極のスーパーカーマイスター！"; rank.style.color = "#f1c40f"; playSE('correct');
+                rank.innerText = " 究極のスーパーカーマイスター！"; rank.style.color = "#f1c40f"; playSE('correct');
             } else if (score >= maxScore * 0.5) {
-                rank.innerText = "🚗 立派な車好きですね！"; rank.style.color = "#2ecc71";
+                rank.innerText = " 立派な車好きですね！"; rank.style.color = "#2ecc71";
             } else {
-                rank.innerText = "🔰 まだまだこれから！"; rank.style.color = "#fff";
+                rank.innerText = " まだまだこれから！"; rank.style.color = "#fff";
             }
         }
 
