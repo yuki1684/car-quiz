@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supercar Quiz v10.0</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #0d0d0d;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+            user-select: none;
+        }
+        h1 { color: #e74c3c; font-style: italic; text-shadow: 0 0 10px #c0392b; margin: 10px 0; }
+        
+        .card {
+            background: #1a1a1a; padding: 25px 20px; border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+            margin-top: 15px; border: 1px solid #333;
+        }
+
+        /* スタート画面 */
+        .mode-group { margin-bottom: 20px; }
+        .selection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .select-btn {
+            padding: 15px; border-radius: 8px; border: 2px solid #444;
+            background: #222; color: #fff; cursor: pointer; font-weight: bold;
+            transition: 0.2s;
+        }
+        .select-btn.selected {
+            background: #e74c3c; border-color: #e74c3c; box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+        }
+        .big-start-btn {
+            width: 100%; padding: 20px; background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white; font-size: 1.2em; font-weight: bold; border: none; border-radius: 10px;
+            cursor: pointer; margin-top: 15px; text-transform: uppercase;
+        }
+        .big-start-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+        /* 画像エリア */
+        .image-container {
+            width: 100%; height: 250px; overflow: hidden;
+            border: 4px solid #444; position: relative; background: #000;
+            margin: 0 auto 15px auto; border-radius: 5px;
+            transition: border-color 0.3s;
+        }
+        .zoom-img {
+            width: 100%; height: 100%; object-fit: cover; /* PNGの縦横比を維持しつつ埋める */
+            transform: scale(25); transform-origin: center; 
+            transition: transform 8s ease-out;
+        }
+
+        /* 音声アイコン */
+        .sound-container { height: 250px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .sound-icon { 
+            font-size: 80px; cursor: pointer; display: inline-block;
+            background: #333; width: 120px; height: 120px; line-height: 120px;
+            border-radius: 50%; border: 3px solid #555; transition: 0.3s;
+        }
+        .sound-playing { animation: pulse 1s infinite; border-color: #e74c3c; color: #e74c3c; box-shadow: 0 0 20px #e74c3c; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        /* 動画エリア */
+        .video-wrapper {
+            display: none; width: 100%; height: 250px; background: #000;
+            margin-bottom: 15px; border-radius: 5px; overflow: hidden; border: 2px solid #e74c3c;
+        }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* ボタン */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .btn {
+            background: #333; color: white; border: 2px solid #333; padding: 15px;
+            border-radius: 5px; font-size: 14px; cursor: pointer; transition: 0.2s; width: 100%;
+        }
+        .btn:hover:not(:disabled) { background: #444; border-color: #444; }
+
+        .btn.correct-btn { background: #2ecc71 !important; border-color: #27ae60 !important; color: white !important; opacity: 1 !important; }
+        .btn.wrong-btn { background: #e74c3c !important; border-color: #c0392b !important; color: white !important; opacity: 0.6; }
+        
+        .border-correct { border-color: #2ecc71 !important; }
+        .border-wrong { border-color: #e74c3c !important; }
+
+        .timer-bar { height: 8px; background: #e74c3c; width: 100%; transition: width 1s linear; }
+        #game-screen, #final-screen { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>🏎️ Supercar Quiz v10</h1>
+
+    <div id="start-screen" class="card">
+        <h2>GAME SETUP</h2>
+        <div class="mode-group">
+            <span style="color:#aaa; display:block; margin-bottom:5px;">1. クイズの種類</span>
+            <div class="selection-grid">
+                <button class="select-btn" id="btn-cat-image" onclick="selectCategory('image')">📷 画像クイズ</button>
+                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')">🔊 音クイズ + 🎥</button>
+            </div>
+        </div>
+        <div class="mode-group">
+            <span style="color:#aaa; display:block; margin-bottom:5px;">2. モード選択</span>
+            <div class="selection-grid">
+                <button class="select-btn" id="btn-mode-time" onclick="selectMode(true)">🔥 タイムアタック</button>
+                <button class="select-btn" id="btn-mode-relax" onclick="selectMode(false)">☕ リラックス</button>
+            </div>
+        </div>
+        <button id="start-btn" class="big-start-btn" onclick="startGame()" disabled>START GAME</button>
+    </div>
+
+    <div id="game-screen">
+        <div style="display:flex; justify-content:space-between; padding:0 10px;">
+            <span id="progress-text">Q 1 / 10</span>
+            <span style="color:#f1c40f; font-weight:bold;">SCORE: <span id="score">0</span></span>
+        </div>
+        <div id="timer-wrapper" style="margin-top:10px; display:none;">
+            <div style="background:#333; height:8px; border-radius:4px; overflow:hidden;">
+                <div id="timer-bar" class="timer-bar"></div>
+            </div>
+            <div style="text-align:right; font-size:0.8em; color:#aaa; margin-top:2px;">残り <span id="time-left">10</span> 秒</div>
+        </div>
+        <div id="quiz-area" class="card"></div>
+    </div>
+
+    <div id="final-screen" class="card">
+        <h2>🏁 FINISH! 🏁</h2>
+        <div style="font-size:4em; color:#f1c40f; margin:20px 0;" id="final-score">0</div>
+        <p id="rank-comment" style="font-size:1.2em; font-weight:bold;"></p>
+        <button class="btn" style="background:#3498db; margin-top:20px;" onclick="location.reload()">タイトルに戻る</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🎵 オーディオ & 効果音システム (MP3対応版)
+        // ==========================================
+        let currentAudio = null; // 現在再生中のエンジン音
+        
+        // エンジン音(MP3)を再生する関数
+        function playEngineSound(fileName) {
+            // 既に再生中なら止める
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+
+            // MP3ファイルがない場合はエラー回避
+            if (!fileName) return;
+
+            // 新しい音声をセット
+            currentAudio = new Audio(fileName);
+            
+            // 再生開始
+            currentAudio.play().catch(e => {
+                console.log("音声ファイルが見つからないか、再生できません:", e);
+                // エラー時はアイコンのアニメーションを止めるなどの処理を入れても良い
+            });
+
+            // 再生中のアイコン演出
+            const icon = document.getElementById('sound-icon');
+            if(icon) {
+                icon.classList.add('sound-playing');
+                // 音声が終わったらアニメーション停止
+                currentAudio.onended = () => {
+                    icon.classList.remove('sound-playing');
+                };
+            }
+        }
+
+        // エンジン音を強制停止する関数（回答時など）
+        function stopEngineSound() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            const icon = document.getElementById('sound-icon');
+            if(icon) icon.classList.remove('sound-playing');
+        }
+
+        // 正解・不正解のSE（これは簡易的な電子音のままにしていますが、ここもmp3にできます）
+        let audioCtx;
+        function playSE(type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const now = audioCtx.currentTime;
+            if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now); osc.frequency.setValueAtTime(1760, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            }
+            osc.start(now); osc.stop(now + 0.3); osc.connect(gain); gain.connect(audioCtx.destination);
+        }
+
+        // ==========================================
+        // 🎮 ゲームロジック
+        // ==========================================
+        let selectedCategory = null; 
+        let isTimerMode = null;      
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let timerInterval;
+        let timeLeft = 10;
+        let isAnswered = false;
+
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            document.getElementById('btn-cat-image').classList.remove('selected');
+            document.getElementById('btn-cat-sound').classList.remove('selected');
+            document.getElementById(`btn-cat-${cat}`).classList.add('selected');
+            checkStartReady();
+        }
+        function selectMode(mode) {
+            isTimerMode = mode;
+            document.getElementById('btn-mode-time').classList.remove('selected');
+            document.getElementById('btn-mode-relax').classList.remove('selected');
+            document.getElementById(mode ? 'btn-mode-time' : 'btn-mode-relax').classList.add('selected');
+            checkStartReady();
+        }
+        function checkStartReady() {
+            if (selectedCategory && isTimerMode !== null) document.getElementById('start-btn').disabled = false;
+        }
+
+        function startGame() {
+            if (selectedCategory === 'image') currentQuestions = [...imageQuizzes];
+            else currentQuestions = [...soundQuizzes];
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            if (isTimerMode) document.getElementById('timer-wrapper').style.display = 'block';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isAnswered = false;
+            stopEngineSound(); // 前の音が鳴っていたら止める
+
+            const q = currentQuestions[currentIndex];
+            document.getElementById('progress-text').innerText = `Q ${currentIndex + 1} / ${currentQuestions.length}`;
+            
+            let mediaHTML = '';
+            if (selectedCategory === 'image') {
+                // 画像クイズ：PNGもJPGも src="" に入れるだけでOK
+                mediaHTML = `<div class="image-container"><img id="zoom-target" src="${q.img}" class="zoom-img"></div>`;
+            } else {
+                // 音クイズ：初期はアイコン
+                mediaHTML = `<div id="sound-area" class="sound-container"><div class="sound-icon" id="sound-icon" onclick="playEngineSound('${q.soundFile}')">🔊</div><p style="color:#aaa; font-size:0.9em; margin-top:10px;">クリックで再生 / 再生中...</p></div><div id="video-area" class="video-wrapper"></div>`;
+            }
+
+            let buttonsHTML = '<div class="options-grid">';
+            q.o.forEach((opt, idx) => {
+                buttonsHTML += `<button class="btn option-btn" onclick="checkAnswer(${idx}, this)">${opt}</button>`;
+            });
+            buttonsHTML += '</div>';
+
+            document.getElementById('quiz-area').innerHTML = `<h2 style="margin:0 0 10px 0;">${q.q}</h2>${mediaHTML}${buttonsHTML}<div id="result-msg" style="min-height:30px; margin-top:15px; font-weight:bold;"></div><button id="next-btn" class="btn" style="background:#3498db; margin-top:10px; display:none;" onclick="goNext()">次の問題へ ➡</button>`;
+
+            setTimeout(() => {
+                if(selectedCategory === 'image') {
+                    const img = document.getElementById('zoom-target');
+                    if(img) img.style.transform = "scale(1)";
+                } else {
+                    // 音クイズ：開始時に自動再生（自動再生ブロック対策でクリックが必要な場合もあります）
+                    playEngineSound(q.soundFile);
+                }
+            }, 800);
+
+            if (isTimerMode) startTimer();
+        }
+
+        function startTimer() {
+            timeLeft = 10;
+            updateTimerUI();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timeUp();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            document.getElementById('time-left').innerText = timeLeft;
+            document.getElementById('timer-bar').style.width = (timeLeft * 10) + "%";
+        }
+
+        function timeUp() {
+            if(isAnswered) return;
+            checkAnswer(-1, null);
+        }
+
+        function checkAnswer(idx, btn) {
+            if (isAnswered) return;
+            isAnswered = true;
+            clearInterval(timerInterval);
+            
+            // 回答したらエンジン音を止める
+            stopEngineSound();
+
+            const q = currentQuestions[currentIndex];
+            const allBtns = document.querySelectorAll('.option-btn');
+            const resultMsg = document.getElementById('result-msg');
+            const imgContainer = document.querySelector('.image-container');
+
+            if(selectedCategory === 'image') {
+                const img = document.getElementById('zoom-target');
+                if(img) img.style.transform = "scale(1)";
+            }
+            if(selectedCategory === 'sound') {
+                const soundArea = document.getElementById('sound-area');
+                const videoArea = document.getElementById('video-area');
+                soundArea.style.display = 'none';
+                videoArea.style.display = 'block';
+                videoArea.innerHTML = `<iframe src="https://www.youtube.com/embed/${q.video}?autoplay=1&mute=1&controls=0&rel=0" allow="autoplay"></iframe>`;
+            }
+
+            let isCorrect = (idx === q.a);
+            if (isCorrect) {
+                playSE('correct');
+                let points = 100;
+                if (isTimerMode) points += (timeLeft * 10);
+                score += points;
+                resultMsg.innerHTML = `<span style="color:#2ecc71">正解！ +${points}点</span>`;
+                btn.classList.add('correct-btn');
+                if(imgContainer) imgContainer.classList.add('border-correct');
+            } else {
+                playSE('wrong');
+                resultMsg.innerHTML = `<span style="color:#e74c3c">不正解... 正解は「${q.o[q.a]}」</span>`;
+                if(btn) btn.classList.add('wrong-btn');
+                if(imgContainer) imgContainer.classList.add('border-wrong');
+                allBtns[q.a].classList.add('correct-btn');
+            }
+            document.getElementById('score').innerText = score;
+            allBtns.forEach(b => b.disabled = true);
+            document.getElementById('next-btn').style.display = 'block';
+        }
+
+        function goNext() {
+            currentIndex++;
+            if (currentIndex < currentQuestions.length) loadQuestion();
+            else showResult();
+        }
+
+        function showResult() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('final-screen').style.display = 'block';
+            document.getElementById('final-score').innerText = score;
+            const maxScore = currentQuestions.length * (isTimerMode ? 200 : 100);
+            const rank = document.getElementById('rank-comment');
+            if (score >= maxScore * 0.8) {
+                rank.innerText = "🏆 究極のスーパーカーマイスター！"; rank.style.color = "#f1c40f"; playSE('correct');
+            } else if (score >= maxScore * 0.5) {
+                rank.innerText = "🚗 立派な車好きですね！"; rank.style.color = "#2ecc71";
+            } else {
+                rank.innerText = "🔰 まだまだこれから！"; rank.style.color = "#fff";
+            }
+        }
+
+        // ==========================================
+        // 💾 クイズデータリスト
+        // ==========================================
+        
+        // 📷 【画像クイズ】
+        // img: 画像ファイルのパス (PNG, JPGどちらでもOK)
+        // 例: "ferrari.png" や "images/car01.jpg" など
+        const imageQuizzes = [
+            { a:0, q:"この車は？", img:"https://images.unsplash.com/photo-1592198084033-aade902d1aae?w=600", o:["フェラーリ F8", "マクラーレン 720S", "ランボルギーニ", "ポルシェ 911"] },
+            { a:1, q:"巨大なリアウィング...", img:"https://images.unsplash.com/photo-1503376763036-066120622c74?w=600", o:["GT-R Nismo", "ポルシェ 911 GT3", "ホンダ NSX", "BMW M4"] },
+            // ↓ 下記のようにローカルのPNGファイルを指定できます
+            // { a:0, q:"テスト用画像", img:"my_car_image.png", o:["A", "B", "C", "D"] },
+            { a:2, q:"鋭いヘッドライト", img:"https://images.unsplash.com/photo-1544605975-33d886f8b542?w=600", o:["カマロ", "マスタング", "ランボルギーニ ウラカン", "コルベット"] },
+            { a:0, q:"伝説のハイパーカー", img:"https://images.unsplash.com/photo-1621508654686-8193a7d43232?w=600", o:["ブガッティ シロン", "ケーニグセグ", "パガーニ", "ラ・フェラーリ"] },
+            { a:3, q:"リトラクタブルライト", img:"https://images.unsplash.com/photo-1552519507-da8b1227ad4a?w=600", o:["AE86", "RX-7 (FD)", "スープラ", "NSX (初代)"] },
+            { a:1, q:"イギリスの誇り", img:"https://images.unsplash.com/photo-1617788138017-80ad40651399?w=600", o:["ベントレー", "アストンマーティン", "ジャガー", "ロータス"] },
+            { a:2, q:"国産スーパーカー", img:"https://images.unsplash.com/photo-1627454819213-17742d4a51e6?w=600", o:["LC500", "LFA", "GT-R (R35)", "NSX"] },
+            { a:0, q:"ガルウィングドア", img:"https://images.unsplash.com/photo-1614200187524-dc4b392ade73?w=600", o:["メルセデス SLS AMG", "デロリアン", "テスラ", "パガーニ"] },
+            { a:3, q:"V10エンジンの傑作", img:"https://images.unsplash.com/photo-1600712242805-5f78671b24da?w=600", o:["フェラーリ 458", "BMW M5", "ヴァイパー", "レクサス LFA"] },
+            { a:1, q:"アメリカンマッスル", img:"https://images.unsplash.com/photo-1583121274602-3e2820c698d9?w=600", o:["カマロ", "フォード GT", "チャレンジャー", "コルベット"] }
+        ];
+
+        // 🔊 【音クイズ】
+        // soundFile: MP3ファイルのパスを指定します
+        // 例: "sounds/v12_engine.mp3"
+        const soundQuizzes = [
+            { a:1, q:"この高音V12サウンドは？", soundFile:"sound_aventador.mp3", video:"mk40W31d92A", o:["ダッジ バイパー", "ランボルギーニ アヴェンタドール", "AMG GT", "コルベット"] },
+            { a:0, q:"独特な乾いたV8サウンド", soundFile:"sound_ferrari458.mp3", video:"K9O1T0jG1tQ", o:["フェラーリ 458", "マスタング", "アストンマーティン", "ベントレー"] },
+            { a:3, q:"ドロドロとした低音...", soundFile:"sound_challenger.mp3", video:"Q6Mdc5fP-jM", o:["ポルシェ 911", "NSX", "GT-R", "ダッジ チャレンジャー"] },
+            { a:2, q:"精密機械のような直6音", soundFile:"sound_bmw.mp3", video:"A_1Xo3e6-e4", o:["スープラ", "RX-7", "BMW M4", "シビック TypeR"] },
+            { a:0, q:"F1のような超高音 (V10)", soundFile:"sound_lfa.mp3", video:"p6D7jI-O9sg", o:["レクサス LFA", "アウディ R8", "ガヤルド", "ウラカン"] },
+            // 以下はファイルがない場合（ダミー）でもエラーにはならず無音になります
+            { a:1, q:"ロータリーサウンド", soundFile:"sound_rx7.mp3", video:"v4aL0R2K6m8", o:["GT-R", "マツダ RX-7", "ランエボ", "インプレッサ"] },
+            { a:2, q:"水平対向エンジンの鼓動", soundFile:"sound_boxer.mp3", video:"C629555555", o:["86/BRZ", "フェラーリ", "ポルシェ 911", "WRX STI"] },
+            { a:3, q:"W16エンジンの重低音", soundFile:"sound_chiron.mp3", video:"PkkV1vLHUvQ", o:["ロールスロイス", "マイバッハ", "ケーニグセグ", "ブガッティ シロン"] },
+            { a:0, q:"ハイブリッドモーター混じり", soundFile:"sound_nsx.mp3", video:"gP94d55555", o:["ホンダ NSX(新型)", "プリウス", "i8", "ラ・フェラーリ"] },
+            { a:1, q:"アメリカンV8の爆音", soundFile:"sound_mustang.mp3", video:"A8g4d55555", o:["テスラ", "シェルビー GT500", "フォーカス", "バイパー"] }
+        ];
+    </script>
+</body>
+</html>
