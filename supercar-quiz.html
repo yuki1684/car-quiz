@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supercar Quiz v14</title>
+    <title>Supercar Quiz v17</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>Supercar Quiz v14</h1>
+    <h1>Supercar Quiz v17</h1>
 
     <div id="start-screen" class="card">
         <h2>GAME SETUP</h2>
@@ -16,7 +16,7 @@
             <span style="color:#aaa; display:block; margin-bottom:5px;">1. クイズの種類</span>
             <div class="selection-grid">
                 <button class="select-btn" id="btn-cat-image" onclick="selectCategory('image')">画像クイズ</button>
-                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')">音クイズ + 動画</button>
+                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')"> 音クイズ</button>
             </div>
         </div>
         <div class="mode-group">
@@ -64,31 +64,31 @@
             // 既存の再生を停止
             if (currentAudio) {
                 currentAudio.pause();
+                currentAudio.onended = null; // イベントリスナーを解除
                 currentAudio.currentTime = 0;
             }
             if (!fileName) return;
 
             currentAudio = new Audio(fileName);
-            // 自動再生のポリシー制限を回避するため、catchを入れていますが
-            // ユーザーが「スタート」ボタンを押した後なので通常は再生されます
             currentAudio.play().catch(e => {
                 console.log("自動再生ブロック:", e);
-                // 万が一ブロックされた場合、ユーザーにクリックを促す表示などを出すのが親切ですが
-                // 今回はシンプルにログのみとします
             });
 
             const icon = document.getElementById('sound-icon');
             if(icon) {
                 icon.classList.add('sound-playing');
-                currentAudio.onended = () => {
-                    icon.classList.remove('sound-playing');
-                };
+                // 通常再生（ループなし）の場合のアニメーション停止処理
+                // ※loadQuestion内でonendedを上書きする場合があるため、ここでは最低限の設定
+                currentAudio.addEventListener('ended', () => {
+                   if(icon) icon.classList.remove('sound-playing');
+                });
             }
         }
 
         function stopEngineSound() {
             if (currentAudio) {
                 currentAudio.pause();
+                currentAudio.onended = null; // 重要：回答時に次の再生予約などを消す
                 currentAudio = null;
             }
             const icon = document.getElementById('sound-icon');
@@ -163,13 +163,22 @@
             const q = currentQuestions[currentIndex];
             document.getElementById('progress-text').innerText = `Q ${currentIndex + 1} / ${currentQuestions.length}`;
             
+            // UI構築
             let mediaHTML = '';
             if (selectedCategory === 'image') {
                 mediaHTML = `<div class="image-container"><img id="zoom-target" src="${q.img}" class="zoom-img"></div>`;
             } else {
-                // 音声アイコン（テキストを「Sound Playing...」などに変更）
-                // onclickも残していますが、基本は自動再生です
-                mediaHTML = `<div id="sound-area" class="sound-container"><div class="sound-icon" id="sound-icon" onclick="playEngineSound('${q.soundFile}')"></div><p style="color:#e74c3c; font-size:0.9em; margin-top:10px; font-weight:bold;">Now Playing...</p></div><div id="video-area" class="video-wrapper"></div>`;
+                // 音クイズの表示
+                let statusText = "Now Playing...";
+                if (isTimerMode) {
+                    statusText = "音声確認中... (再生終了後に計測開始)";
+                }
+                
+                mediaHTML = `<div id="sound-area" class="sound-container">
+                    <div class="sound-icon" id="sound-icon" onclick="playEngineSound('${q.soundFile}')"></div>
+                    <p id="sound-status" style="color:#e74c3c; font-size:0.9em; margin-top:10px; font-weight:bold;">${statusText}</p>
+                </div>
+                <div id="video-area" class="video-wrapper"></div>`;
             }
 
             let buttonsHTML = '<div class="options-grid">';
@@ -180,18 +189,42 @@
 
             document.getElementById('quiz-area').innerHTML = `<h2 style="margin:0 0 10px 0;">${q.q}</h2>${mediaHTML}${buttonsHTML}<div id="result-msg" style="min-height:30px; margin-top:15px; font-weight:bold;"></div><button id="next-btn" class="btn" style="background:#3498db; margin-top:10px; display:none;" onclick="goNext()">次の問題へ >></button>`;
 
-            // 【自動再生処理】
-            // 画像の場合はズームアニメーション、音の場合は即再生
+            // ▼▼▼ 再生とタイマーの制御ロジック ▼▼▼
+            
+            // 少し待ってから開始（画面描画待ち）
             setTimeout(() => {
                 if(selectedCategory === 'image') {
+                    // --- 画像クイズの場合 ---
                     const img = document.getElementById('zoom-target');
                     if(img) img.style.transform = "scale(1)";
+                    if (isTimerMode) startTimer(); // 即タイマースタート
                 } else {
+                    // --- 音クイズの場合 ---
                     playEngineSound(q.soundFile);
-                }
-            }, 500); // 画面切り替わり後0.5秒で再生開始
 
-            if (isTimerMode) startTimer();
+                    if (isTimerMode) {
+                        // 【タイムアタック】: 1回目はプレビュー、終わったら2回目再生＆タイマー開始
+                        if(currentAudio) {
+                            currentAudio.onended = function() {
+                                // 1回目の再生が終わった時の処理
+                                if(!isAnswered) { // まだ回答していない場合のみ
+                                    playEngineSound(q.soundFile); // 2回目の再生
+                                    // テキスト更新
+                                    const statusEl = document.getElementById('sound-status');
+                                    if(statusEl) statusEl.innerText = "計測スタート！";
+                                    // タイマースタート
+                                    startTimer();
+                                    // 2回目が終わってもループしないようにイベント削除
+                                    currentAudio.onended = null; 
+                                }
+                            };
+                        }
+                    } else {
+                        // 【リラックス】: タイマーなし、普通に再生
+                        // (playEngineSound内で再生済み)
+                    }
+                }
+            }, 500);
         }
 
         function startTimer() {
@@ -223,7 +256,7 @@
             isAnswered = true;
             clearInterval(timerInterval);
             
-            // 正解・不正解にかかわらずエンジン音は止める（動画の音を聞くため）
+            // 音声を停止（および2回目再生予約なども解除）
             stopEngineSound();
 
             const q = currentQuestions[currentIndex];
@@ -242,8 +275,7 @@
                 soundArea.style.display = 'none';
                 videoArea.style.display = 'block';
                 
-                // 【MP4動画再生】
-                // videoタグを生成して埋め込みます
+                // MP4動画再生
                 videoArea.innerHTML = `
                     <video class="result-video" controls autoplay>
                         <source src="${q.video}" type="video/mp4">
@@ -255,7 +287,11 @@
             if (isCorrect) {
                 playSE('correct');
                 let points = 100;
-                if (isTimerMode) points += (timeLeft * 10);
+                if (isTimerMode) {
+                    // タイムアタック時のスコア計算
+                    let bonusTime = (timeLeft === 10) ? 10 : (timeLeft + 1);
+                    points += (bonusTime * 10);
+                }
                 score += points;
                 resultMsg.innerHTML = `<span style="color:#2ecc71">正解！ +${points}点</span>`;
                 if(btn) btn.classList.add('correct-btn');
@@ -316,7 +352,7 @@
         const soundQuizzes = [
             { a:1, q:"この高音V12サウンドは？", soundFile:"sound_aventador.mp3", video:"aventador.mp4", o:["ダッジ バイパー", "ランボルギーニ アヴェンタドール", "AMG GT", "コルベット"] },
             { a:0, q:"独特な乾いたV8サウンド", soundFile:"sound_ferrari458.mp3", video:"ferrari.mp4", o:["フェラーリ 458", "マスタング", "アストンマーティン", "ベントレー"] },
-            { a:3, q:"ドロドロとした低音...", soundFile:"sound_challenger.mp3", video:"challenger.mp4", o:["ポルシェ 911", "NSX", "GT-R", "ダッジ チャレンジャー"] },
+            { a:2, q:"ドロドロとした低音...", soundFile:"GTR.mp3", video:"GTR.mp4", o:["ポルシェ 911", "NSX", "GT-R", "ダッジ チャレンジャー"] },
             { a:2, q:"精密機械のような直6音", soundFile:"sound_bmw.mp3", video:"bmw_m4.mp4", o:["スープラ", "RX-7", "BMW M4", "シビック TypeR"] },
             { a:0, q:"F1のような超高音 (V10)", soundFile:"sound_lfa.mp3", video:"lfa.mp4", o:["レクサス LFA", "アウディ R8", "ガヤルド", "ウラカン"] },
             { a:1, q:"ロータリーサウンド", soundFile:"sound_rx7.mp3", video:"rx7.mp4", o:["GT-R", "マツダ RX-7", "ランエボ", "インプレッサ"] },
