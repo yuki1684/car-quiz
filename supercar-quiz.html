@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supercar Quiz v11.0</title>
+    <title>Supercar Quiz v14</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>🏎️ Supercar Quiz v11</h1>
+    <h1>Supercar Quiz v14</h1>
 
     <div id="start-screen" class="card">
         <h2>GAME SETUP</h2>
         <div class="mode-group">
             <span style="color:#aaa; display:block; margin-bottom:5px;">1. クイズの種類</span>
             <div class="selection-grid">
-                <button class="select-btn" id="btn-cat-image" onclick="selectCategory('image')">📷 画像クイズ</button>
-                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')">🔊 音クイズ + 🎥</button>
+                <button class="select-btn" id="btn-cat-image" onclick="selectCategory('image')">画像クイズ</button>
+                <button class="select-btn" id="btn-cat-sound" onclick="selectCategory('sound')">音クイズ + 動画</button>
             </div>
         </div>
         <div class="mode-group">
             <span style="color:#aaa; display:block; margin-bottom:5px;">2. モード選択</span>
             <div class="selection-grid">
-                <button class="select-btn" id="btn-mode-time" onclick="selectMode(true)">🔥 タイムアタック</button>
-                <button class="select-btn" id="btn-mode-relax" onclick="selectMode(false)">☕ リラックス</button>
+                <button class="select-btn" id="btn-mode-time" onclick="selectMode(true)">タイムアタック</button>
+                <button class="select-btn" id="btn-mode-relax" onclick="selectMode(false)">リラックス</button>
             </div>
         </div>
         <button id="start-btn" class="big-start-btn" onclick="startGame()" disabled>START GAME</button>
@@ -34,7 +34,7 @@
             <span id="progress-text">Q 1 / 10</span>
             <div class="header-right">
                 <span style="color:#f1c40f; font-weight:bold;">SCORE: <span id="score">0</span></span>
-                <button class="menu-btn" onclick="backToMenu()">🏠 メニュー</button>
+                <button class="menu-btn" onclick="backToMenu()">メニュー</button>
             </div>
         </div>
         
@@ -48,7 +48,7 @@
     </div>
 
     <div id="final-screen" class="card">
-        <h2>🏁 FINISH! 🏁</h2>
+        <h2>FINISH!</h2>
         <div style="font-size:4em; color:#f1c40f; margin:20px 0;" id="final-score">0</div>
         <p id="rank-comment" style="font-size:1.2em; font-weight:bold;"></p>
         <button class="btn" style="background:#3498db; margin-top:20px;" onclick="location.reload()">タイトルに戻る</button>
@@ -61,6 +61,7 @@
         let currentAudio = null; 
         
         function playEngineSound(fileName) {
+            // 既存の再生を停止
             if (currentAudio) {
                 currentAudio.pause();
                 currentAudio.currentTime = 0;
@@ -68,8 +69,12 @@
             if (!fileName) return;
 
             currentAudio = new Audio(fileName);
+            // 自動再生のポリシー制限を回避するため、catchを入れていますが
+            // ユーザーが「スタート」ボタンを押した後なので通常は再生されます
             currentAudio.play().catch(e => {
-                console.log("音声再生エラー:", e);
+                console.log("自動再生ブロック:", e);
+                // 万が一ブロックされた場合、ユーザーにクリックを促す表示などを出すのが親切ですが
+                // 今回はシンプルにログのみとします
             });
 
             const icon = document.getElementById('sound-icon');
@@ -146,12 +151,14 @@
             if (isTimerMode) document.getElementById('timer-wrapper').style.display = 'block';
             loadQuestion();
         }
-    function backToMenu() {
-            location.reload();}
+
+        function backToMenu() {
+            location.reload();
+        }
 
         function loadQuestion() {
             isAnswered = false;
-            stopEngineSound();
+            stopEngineSound(); // 前の音があれば消す
 
             const q = currentQuestions[currentIndex];
             document.getElementById('progress-text').innerText = `Q ${currentIndex + 1} / ${currentQuestions.length}`;
@@ -160,7 +167,9 @@
             if (selectedCategory === 'image') {
                 mediaHTML = `<div class="image-container"><img id="zoom-target" src="${q.img}" class="zoom-img"></div>`;
             } else {
-                mediaHTML = `<div id="sound-area" class="sound-container"><div class="sound-icon" id="sound-icon" onclick="playEngineSound('${q.soundFile}')">🔊</div><p style="color:#aaa; font-size:0.9em; margin-top:10px;">クリックで再生 / 再生中...</p></div><div id="video-area" class="video-wrapper"></div>`;
+                // 音声アイコン（テキストを「Sound Playing...」などに変更）
+                // onclickも残していますが、基本は自動再生です
+                mediaHTML = `<div id="sound-area" class="sound-container"><div class="sound-icon" id="sound-icon" onclick="playEngineSound('${q.soundFile}')"></div><p style="color:#e74c3c; font-size:0.9em; margin-top:10px; font-weight:bold;">Now Playing...</p></div><div id="video-area" class="video-wrapper"></div>`;
             }
 
             let buttonsHTML = '<div class="options-grid">';
@@ -169,8 +178,10 @@
             });
             buttonsHTML += '</div>';
 
-            document.getElementById('quiz-area').innerHTML = `<h2 style="margin:0 0 10px 0;">${q.q}</h2>${mediaHTML}${buttonsHTML}<div id="result-msg" style="min-height:30px; margin-top:15px; font-weight:bold;"></div><button id="next-btn" class="btn" style="background:#3498db; margin-top:10px; display:none;" onclick="goNext()">次の問題へ ➡</button>`;
+            document.getElementById('quiz-area').innerHTML = `<h2 style="margin:0 0 10px 0;">${q.q}</h2>${mediaHTML}${buttonsHTML}<div id="result-msg" style="min-height:30px; margin-top:15px; font-weight:bold;"></div><button id="next-btn" class="btn" style="background:#3498db; margin-top:10px; display:none;" onclick="goNext()">次の問題へ >></button>`;
 
+            // 【自動再生処理】
+            // 画像の場合はズームアニメーション、音の場合は即再生
             setTimeout(() => {
                 if(selectedCategory === 'image') {
                     const img = document.getElementById('zoom-target');
@@ -178,7 +189,7 @@
                 } else {
                     playEngineSound(q.soundFile);
                 }
-            }, 800);
+            }, 500); // 画面切り替わり後0.5秒で再生開始
 
             if (isTimerMode) startTimer();
         }
@@ -212,6 +223,7 @@
             isAnswered = true;
             clearInterval(timerInterval);
             
+            // 正解・不正解にかかわらずエンジン音は止める（動画の音を聞くため）
             stopEngineSound();
 
             const q = currentQuestions[currentIndex];
@@ -226,9 +238,17 @@
             if(selectedCategory === 'sound') {
                 const soundArea = document.getElementById('sound-area');
                 const videoArea = document.getElementById('video-area');
+                
                 soundArea.style.display = 'none';
                 videoArea.style.display = 'block';
-                videoArea.innerHTML = `<iframe src="https://www.youtube.com/embed/${q.video}?autoplay=1&mute=1&controls=0&rel=0" allow="autoplay"></iframe>`;
+                
+                // 【MP4動画再生】
+                // videoタグを生成して埋め込みます
+                videoArea.innerHTML = `
+                    <video class="result-video" controls autoplay>
+                        <source src="${q.video}" type="video/mp4">
+                        <p>動画を再生できません。</p>
+                    </video>`;
             }
 
             let isCorrect = (idx === q.a);
@@ -238,7 +258,7 @@
                 if (isTimerMode) points += (timeLeft * 10);
                 score += points;
                 resultMsg.innerHTML = `<span style="color:#2ecc71">正解！ +${points}点</span>`;
-                btn.classList.add('correct-btn');
+                if(btn) btn.classList.add('correct-btn');
                 if(imgContainer) imgContainer.classList.add('border-correct');
             } else {
                 playSE('wrong');
@@ -265,11 +285,11 @@
             const maxScore = currentQuestions.length * (isTimerMode ? 200 : 100);
             const rank = document.getElementById('rank-comment');
             if (score >= maxScore * 0.8) {
-                rank.innerText = "🏆 究極のスーパーカーマイスター！"; rank.style.color = "#f1c40f"; playSE('correct');
+                rank.innerText = "究極のスーパーカーマイスター！"; rank.style.color = "#f1c40f"; playSE('correct');
             } else if (score >= maxScore * 0.5) {
-                rank.innerText = "🚗 立派な車好きですね！"; rank.style.color = "#2ecc71";
+                rank.innerText = "立派な車好きですね！"; rank.style.color = "#2ecc71";
             } else {
-                rank.innerText = "🔰 まだまだこれから！"; rank.style.color = "#fff";
+                rank.innerText = "まだまだこれから！"; rank.style.color = "#fff";
             }
         }
 
@@ -277,7 +297,7 @@
         // 💾 クイズデータリスト
         // ==========================================
         
-        // 📷 【画像クイズ】(PNG, JPG対応)
+        // 📷 【画像クイズ】
         const imageQuizzes = [
             { a:0, q:"この車は？", img:"https://images.unsplash.com/photo-1592198084033-aade902d1aae?w=600", o:["フェラーリ F8", "マクラーレン 720S", "ランボルギーニ", "ポルシェ 911"] },
             { a:1, q:"巨大なリアウィング...", img:"https://images.unsplash.com/photo-1503376763036-066120622c74?w=600", o:["GT-R Nismo", "ポルシェ 911 GT3", "ホンダ NSX", "BMW M4"] },
@@ -291,18 +311,19 @@
             { a:1, q:"アメリカンマッスル", img:"https://images.unsplash.com/photo-1583121274602-3e2820c698d9?w=600", o:["カマロ", "フォード GT", "チャレンジャー", "コルベット"] }
         ];
 
-        // 🔊 【音クイズ】(MP3対応)
+        // 🔊 【音クイズ】
+        // video: ここにMP4ファイル名を書いてください（index.htmlと同じフォルダに保存）
         const soundQuizzes = [
-            { a:1, q:"この高音V12サウンドは？", soundFile:"sound_aventador.mp3", video:"mk40W31d92A", o:["ダッジ バイパー", "ランボルギーニ アヴェンタドール", "AMG GT", "コルベット"] },
-            { a:0, q:"独特な乾いたV8サウンド", soundFile:"sound_ferrari458.mp3", video:"K9O1T0jG1tQ", o:["フェラーリ 458", "マスタング", "アストンマーティン", "ベントレー"] },
-            { a:3, q:"ドロドロとした低音...", soundFile:"sound_challenger.mp3", video:"Q6Mdc5fP-jM", o:["ポルシェ 911", "NSX", "GT-R", "ダッジ チャレンジャー"] },
-            { a:2, q:"精密機械のような直6音", soundFile:"sound_bmw.mp3", video:"A_1Xo3e6-e4", o:["スープラ", "RX-7", "BMW M4", "シビック TypeR"] },
-            { a:0, q:"F1のような超高音 (V10)", soundFile:"sound_lfa.mp3", video:"p6D7jI-O9sg", o:["レクサス LFA", "アウディ R8", "ガヤルド", "ウラカン"] },
-            { a:1, q:"ロータリーサウンド", soundFile:"sound_rx7.mp3", video:"v4aL0R2K6m8", o:["GT-R", "マツダ RX-7", "ランエボ", "インプレッサ"] },
-            { a:2, q:"水平対向エンジンの鼓動", soundFile:"sound_boxer.mp3", video:"C629555555", o:["86/BRZ", "フェラーリ", "ポルシェ 911", "WRX STI"] },
-            { a:3, q:"W16エンジンの重低音", soundFile:"sound_chiron.mp3", video:"PkkV1vLHUvQ", o:["ロールスロイス", "マイバッハ", "ケーニグセグ", "ブガッティ シロン"] },
-            { a:0, q:"ハイブリッドモーター混じり", soundFile:"sound_nsx.mp3", video:"gP94d55555", o:["ホンダ NSX(新型)", "プリウス", "i8", "ラ・フェラーリ"] },
-            { a:1, q:"アメリカンV8の爆音", soundFile:"sound_mustang.mp3", video:"A8g4d55555", o:["テスラ", "シェルビー GT500", "フォーカス", "バイパー"] }
+            { a:1, q:"この高音V12サウンドは？", soundFile:"sound_aventador.mp3", video:"aventador.mp4", o:["ダッジ バイパー", "ランボルギーニ アヴェンタドール", "AMG GT", "コルベット"] },
+            { a:0, q:"独特な乾いたV8サウンド", soundFile:"sound_ferrari458.mp3", video:"ferrari.mp4", o:["フェラーリ 458", "マスタング", "アストンマーティン", "ベントレー"] },
+            { a:3, q:"ドロドロとした低音...", soundFile:"sound_challenger.mp3", video:"challenger.mp4", o:["ポルシェ 911", "NSX", "GT-R", "ダッジ チャレンジャー"] },
+            { a:2, q:"精密機械のような直6音", soundFile:"sound_bmw.mp3", video:"bmw_m4.mp4", o:["スープラ", "RX-7", "BMW M4", "シビック TypeR"] },
+            { a:0, q:"F1のような超高音 (V10)", soundFile:"sound_lfa.mp3", video:"lfa.mp4", o:["レクサス LFA", "アウディ R8", "ガヤルド", "ウラカン"] },
+            { a:1, q:"ロータリーサウンド", soundFile:"sound_rx7.mp3", video:"rx7.mp4", o:["GT-R", "マツダ RX-7", "ランエボ", "インプレッサ"] },
+            { a:2, q:"水平対向エンジンの鼓動", soundFile:"sound_boxer.mp3", video:"boxer.mp4", o:["86/BRZ", "フェラーリ", "ポルシェ 911", "WRX STI"] },
+            { a:3, q:"W16エンジンの重低音", soundFile:"sound_chiron.mp3", video:"chiron.mp4", o:["ロールスロイス", "マイバッハ", "ケーニグセグ", "ブガッティ シロン"] },
+            { a:0, q:"ハイブリッドモーター混じり", soundFile:"sound_nsx.mp3", video:"nsx.mp4", o:["ホンダ NSX(新型)", "プリウス", "i8", "ラ・フェラーリ"] },
+            { a:1, q:"アメリカンV8の爆音", soundFile:"sound_mustang.mp3", video:"mustang.mp4", o:["テスラ", "シェルビー GT500", "フォーカス", "バイパー"] }
         ];
     </script>
 </body>
