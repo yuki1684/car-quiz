@@ -1,0 +1,191 @@
+@charset "UTF-8";
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: #0d0d0d;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+    user-select: none;
+}
+
+h1 {
+    color: #e74c3c;
+    font-style: italic;
+    text-shadow: 0 0 10px #c0392b;
+    margin: 10px 0;
+}
+
+.card {
+    background: #1a1a1a;
+    padding: 25px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.8);
+    margin-top: 15px;
+    border: 1px solid #333;
+}
+
+/* スタート画面 */
+.mode-group { margin-bottom: 20px; }
+.selection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.select-btn {
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid #444;
+    background: #222;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+.select-btn.selected {
+    background: #e74c3c;
+    border-color: #e74c3c;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+}
+
+.big-start-btn {
+    width: 100%;
+    padding: 20px;
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 15px;
+    text-transform: uppercase;
+}
+.big-start-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+/* 画像エリア */
+.image-container {
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+    border: 4px solid #444;
+    position: relative;
+    background: #000;
+    margin: 0 auto 15px auto;
+    border-radius: 5px;
+    transition: border-color 0.3s;
+}
+
+.zoom-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(25);
+    transform-origin: center; 
+    transition: transform 8s ease-out;
+}
+
+/* 音声アイコン */
+.sound-container {
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.sound-icon { 
+    font-size: 80px;
+    cursor: pointer;
+    display: inline-block;
+    background: #333;
+    width: 120px;
+    height: 120px;
+    line-height: 120px;
+    border-radius: 50%;
+    border: 3px solid #555;
+    transition: 0.3s;
+}
+
+.sound-playing {
+    animation: pulse 1s infinite;
+    border-color: #e74c3c;
+    color: #e74c3c;
+    box-shadow: 0 0 20px #e74c3c;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 動画エリア */
+.video-wrapper {
+    display: none;
+    width: 100%;
+    height: 250px;
+    background: #000;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 2px solid #e74c3c;
+}
+iframe { width: 100%; height: 100%; border: none; }
+
+/* ゲームヘッダー */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5px;
+    margin-bottom: 5px;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.menu-btn {
+    background: #555;
+    color: #fff;
+    border: 1px solid #777;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 0.2s;
+}
+.menu-btn:hover { background: #777; }
+
+/* 選択肢ボタン */
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+
+.btn {
+    background: #333;
+    color: white;
+    border: 2px solid #333;
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.2s;
+    width: 100%;
+}
+.btn:hover:not(:disabled) { background: #444; border-color: #444; }
+
+.btn.correct-btn { background: #2ecc71 !important; border-color: #27ae60 !important; color: white !important; opacity: 1 !important; }
+.btn.wrong-btn { background: #e74c3c !important; border-color: #c0392b !important; color: white !important; opacity: 0.6; }
+
+.border-correct { border-color: #2ecc71 !important; }
+.border-wrong { border-color: #e74c3c !important; }
+
+/* タイマー */
+.timer-bar {
+    height: 8px;
+    background: #e74c3c;
+    width: 100%;
+    transition: width 1s linear;
+}
+
+#game-screen, #final-screen { display: none; }
